@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+	<meta http-equiv="Expires" content="0" />
+	<meta http-equiv="Cache-Control" content="no-cache" />
+	<meta http-equiv="Pragma" content="no-cache" />
+
+	<!-- Load jQuery 1.11.1 -->
+	<script type="text/javascript" src="/XMII/CM/General/jquery/jquery_1-11-1.js"></script>
+
+	<!-- Load select js files -->
+	<link type="text/css" href="/XMII/CM/General/Styles/select2.css" rel="stylesheet" />
+	<script type="text/javascript" src="/XMII/CM/General/jquery/select2-3.5.1/select2.js"></script>
+
+	<!-- Load impromptu popup  -->
+	<link rel="stylesheet" media="all" type="text/css" href="/XMII/CM/General/jquery/prompt/jquery-impromptu.css" />
+	<script type="text/javascript" src="/XMII/CM/General/jquery/prompt/jquery-impromptu.js"></script>
+
+	<!-- Context menu -->
+	<link href="/XMII/CM/General/jquery/ui/jquery-ui.css" type="text/css" rel="stylesheet" />
+	<script src="/XMII/CM/General/jquery/ui/jquery-ui.js" type="text/javascript"></script>
+
+	<script src="/XMII/CM/General/jquery/ui/jquery.ui-contextmenu.min.js" type="text/javascript"></script>
+
+	<!-- PULS library -->
+	<script type="text/javascript" src="/XMII/CM/General/Library/PulsFilters.js"></script>
+
+	<!-- Load DataTable JS files -->
+	<script type="text/javascript" src="/XMII/CM/General/jquery/DataTables_1-10-1/media/js/jquery.dataTables.js"></script>
+	<script type="text/javascript" src="/XMII/CM/General/jquery/DataTables_1-10-1/media/js/jquery.dataTablesExtensions.js"></script>
+	<script type="text/javascript" src="/XMII/CM/General/jquery/DataTables_1-10-1/examples/resources/syntax/shCore.js"></script>
+	<script type="text/javascript" src="/XMII/CM/General/Library/jDataTableMenu.js"></script>
+
+	<link rel="stylesheet" type="text/css" href="/XMII/CM/General/jquery/DataTables_1-10-1/media/css/jquery.dataTables.css">
+	<link rel="stylesheet" type="text/css" href="/XMII/CM/General/Styles/jquery/shCore.css">
+	<link rel="stylesheet" type="text/css" href="/XMII/CM/General/Styles/jquery/dataTables_themeroller.css">
+
+	<script type="text/javascript" src="/XMII/CM/General/Library/Utility.js"></script>
+	<script type="text/javascript" src="/XMII/CM/General/Library/calendar.js"></script>
+
+	<script type="text/javascript" src="/XMII/CM/General/Library/d3/d3.js"></script>
+	<script type="text/javascript" src="/XMII/CM/General/Library/d3/d3-legend.js"></script>
+	<script type="text/javascript" src="/XMII/CM/General/Library/d3/nvd3.js"></script>
+
+	<link rel="stylesheet" href="/XMII/CM/General/Library/d3/nv.d3.css" type="text/css" media="screen" />
+
+
+	<!-- general styles -->
+	<link type="text/css" href="/XMII/CM/General/Styles/General.css" rel="stylesheet" />
+	<link type="text/css" href="/XMII/CM/General/Styles/calendar.css" rel="stylesheet" />
+
+	<!-- project styles -->
+
+	<!-- project js files -->
+	<script type="text/javascript" src="/XMII/CM/Mes/Report/js/OrderTrend.js"></script>
+	<script type="text/javascript" src="/XMII/CM/Mes/Report/js/OrderMachineFailure.js"></script>
+	<script type="text/javascript" src="/XMII/CM/Mes/Report/js/MachineFailureReason.js"></script>
+
+
+
+	<title>OEE</title>
+
+
+	<style>
+	body {
+			font-family: tahoma;
+			color: #000000;
+			margin-top:3px;
+			margin-left:3px;
+			background-color: #F8F8F8; /* #ffef93;  #FFE384; #fff7b7;*/
+			background-image: url("/XMII/CM/Mes/img/logo-fly.png");
+   	 	background-position-x: 10px;
+			background-position-y: 5px;
+   	 	background-repeat: no-repeat;
+			background-size: 60px 40px;
+		}
+
+		#testChart .nvd3.multiChart  .nv-axis line {
+			stroke: none;
+			fill: none;
+		}
+
+	</style>
+
+	<script type="text/javascript">
+
+	"use strict";
+		// Queries
+		var GetOrderPerformanceXac = "Mes/Report/Interface/Web/GetOrderPerformanceXac";
+		var GetMachineFailureXac = "Mes/Report/Interface/Web/GetMachineFailureXac";
+		var GetMachineReasonXac = "Mes/Report/Interface/Web/GetMachineReasonXac";
+
+
+		// Calendars
+		var toCal = null;
+
+		// Chart support
+		var beginAvailabilityUtc = "";
+		var endAvailabilityUtc = "";
+		var beginAvailabilityLocal = "";
+		var endAvailabilityLocal = "";
+
+		var beginExtendedAvailabilityUtc = "";
+		var endExtendedAvailabilityUtc = "";
+		var beginExtendedAvailabilityLocal = "";
+		var endExtendedAvailabilityLocal = "";
+
+		var selectedMachine = "";
+		var selectedMachineDescription = "";
+		var selectedAvalailabilityBar = "";
+		var percentageChart = null;
+		var pieChart = null;
+		var lineFailureChart = null;
+		var machineFailureDistributionChart = null;
+		var machineFailureTextChart = null;
+		var machineFailureStatusChart = null;
+		var machineFailureReasonChart = null;
+
+		var machineFailureDistributionType = 0;
+		var orderMachineFailureType = 0;
+		var machineFailureTextType =0;
+		var machineFailureStatusType = 0;
+		var machineFailureReasonType = 0;
+		var orderAvailabilityTrendType = 0;
+
+		// var machineFailureQueries = [MachineFailureDistributionXac, MachineFailureTrendXac];
+
+		var tooltipLabels = [];
+
+		// Table support
+		var machineParams = {};
+		var machineDataTable = null;
+		var machineTable = null;
+
+		var failureListParams = {};
+		var failureListDataTable = null;
+		var failureListTable = null;
+		var failureListStatus = "";
+		var failureListReason = "";
+		var failureListText = "";
+
+		var lineInfoParams = {};
+		var bottleNeckMachine = "";
+
+		// Colors
+		var greenColor = "#7cd697"; // "#139D3D";
+		var greyColor = "#999999";
+		var blueColor = "#051488";
+		var purpleColor = "#990099";
+		var lilacColor = "#9999FF";
+		var redColor = "#E70509";
+		var yellowColor = "#ECC340";
+		var blackColor = "#000000";
+		var brownColor = "#330000";
+		var orangeColor = "#ffcf6f";
+		var lightBlueColor = "#e4fcff";
+		var pinkColor = "#fa57a0";
+
+		// Green, red
+		var availabilityColors = ["#7cd697", "#E70509"];
+		var availabilitySelectedColors = ["#1EEA5B", "#E65459"];
+
+		// Rainbow colors
+		var rainbowColors = ["#FF0000", "#FF7F00", "#FFFF00", "#7FFF00",  "#00FF00", "#00FF7F", "#00FFFF", "#007FFF", "#0000FF", "#7F00FF", "#FF00FF", "#FF007F"];
+		// Dark to Light
+		// Black, brown, blue, violet, magenta, cyan, orange, azure, light green, gold, pink, honeydew
+		var colors = ["#000000", "#800000", "#0000CD", "#8A2BE2", "#FF00FF", "#00FFFF", "#FF4500", "#007FFF", "#90EE90", "#FFD700", "#FFC0CB",  "#F0FFFF"];
+		//  green, blue, red, violet, yellow
+		var orderMachineFailureColors = [ "#7cd697", "#0000CD", "#E70509", "#8A2BE2", "#ECC340"];
+		//
+	//	var orderMachineFailureColorsSelected = ["#006AFF", "#1EEA5B", "#E65459", "#B88DE0", "#DFEB44"];
+		var orderMachineFailureColorsSelected = ["#1EEA5B", "#006AFF", "#FF8185", "#e02dd8", "#907628"];
+
+		// green, blue
+		var machineFailureTextColors = ["#7cd697", "#0000CD"];
+		var machineFailureTextColorsSelected = ["#1EEA5B", "#006AFF"];
+		// 16 (operating) : green, 0 (off): brown, 1 (stopped): blue, 2 (upstream): orange, 32 (failure): red, 4 (downstream) : violet, 64 (lack): magenta, 8 (held): yellow
+		var machineFailureStatusColors = {"16":"#7cd697", "1": "#0000CD", "0":  "#800000", "2": "#FF4500", "32":"#E70509", "4": "#8A2BE2", "64": "#0000CD", "8":  "#ECC340"};
+
+		// 000 (Not initialized): red, 201 (Sanitization / Cleaning): blue, 202	(Change of format / product): orange, 203	(Product stoppage): violet
+		//  204 (Problem about packaging / quality / raw material / technologic) : magenta, 205 (Maintenance work (maintenance operation)) : yellow
+		// 206 (Settings (operator operation)): cyan, 207 (Staff lack / Shift change) : pink, 208 (Lack of raw material / packaging) : brown
+		// 209 (Exceptional occurrence (Rain / Power missing / ...)): black, 210 (Planned stop (No production / Preventive maintenance)): periwinkle
+		var machineFailureReasonColors = {"000": "#E70509", "201":  "#0000CD", "202": "#FF4500", "203": "#8A2BE2", "204": "#0000CD", "205":  "#ECC340", "206": "#00FFFF",
+								"207": " #FFC0CB", "208": "#800000", "209":"#000000", "210": "#CCCCFF"};
+
+		var orderMachineFailureControlsData  = [ {
+			key: "TotalDuration",
+			disabled: (orderMachineFailureType != 0),
+			color:orderMachineFailureColors[0],
+			dbField: "TotalDuration"
+		},{
+			key: "Occurrences",
+			disabled: (orderMachineFailureType != 1),
+			color:orderMachineFailureColors[1],
+			dbField: "Occurrences"
+		},{
+			key: "Max",
+			disabled: (orderMachineFailureType != 2),
+			color:orderMachineFailureColors[2],
+			dbField: "DurationMax"
+		},{
+			key: "MTTR",
+			disabled: (orderMachineFailureType != 3),
+			color:orderMachineFailureColors[3],
+			dbField: "MTTR"
+		},{
+			key: "MTBF",
+			disabled: (orderMachineFailureType != 4),
+			color:orderMachineFailureColors[4],
+			dbField: "MTBF"
+		}];
+
+		var machineFailureStatusControlsData = [ {
+			key: "TotalDuration",
+			disabled: (machineFailureStatusType != 0),
+			color:machineFailureTextColors[0]
+		},{
+			key: "Occurrences",
+			disabled: (machineFailureStatusType != 1),
+			color:machineFailureTextColors[1]
+		}];
+
+
+		var machineFailureReasonControlsData = [ {
+			key: "TotalDuration",
+			disabled: (machineFailureReasonType != 0),
+			color:machineFailureTextColors[0]
+		},{
+			key: "Occurrences",
+			disabled: (machineFailureReasonType != 1),
+			color:machineFailureTextColors[1]
+		}];
+
+
+
+		var orderAvailabilityTrendControlsData = [ {
+			key: "Percentage",
+			disabled: (orderAvailabilityTrendType != 0)
+		},{
+			key: "Duration",
+			disabled: (orderAvailabilityTrendType != 1)
+		}];
+
+		// Support
+		var generalLabels = [];
+		var projectLabels = [];
+		var userLanguage = "";
+		var defaultLine = "";
+		var selectLine = "Select Line";
+
+
+		// Browser support
+		var pulsFilters = {};
+		var intervalList = [{
+			"id": "Shift",
+			"text": "Shift"
+		}, {
+			"id": "Day",
+			"text": "Day"
+		}, {
+			"id": "Week",
+			"text": "Week"
+		}, {
+			"id": "Month",
+			"text": "Month"
+		}];
+		var lineList = [];
+
+
+		// CUSTOMIZE IN EACH WEB PAGE
+		function setLanguageLabels() {
+
+			// General Labels
+			intervalList[0].text = generalLabels["Web_Shift"];
+			intervalList[1].text = generalLabels["Web_Day"];
+			intervalList[2].text = generalLabels["Web_Week"];
+			intervalList[3].text = generalLabels["Web_Month"];
+
+			// Project Labels
+			// innerHTML <p>, <div>, <hx>
+			tooltipLabels[0] = projectLabels.Web_Occurrences;
+			tooltipLabels[1] = projectLabels.Web_TotalDuration;
+			tooltipLabels[2] = projectLabels.Web_Max;
+			tooltipLabels[3] = "MTTR";
+			tooltipLabels[4] = "MTBF";
+
+			machineFailureStatusControlsData[1].key = projectLabels.Web_Occurrences;
+			machineFailureStatusControlsData[0].key = projectLabels.Web_TotalDuration;
+
+			machineFailureReasonControlsData[1].key = projectLabels.Web_Occurrences;
+			machineFailureReasonControlsData[0].key = projectLabels.Web_TotalDuration;
+
+			orderMachineControlsData[0].key =  projectLabels.Web_TotalDuration;
+			orderMachineControlsData[1].key =  projectLabels.Web_Occurrences;
+			orderMachineControlsData[2].key =  projectLabels.Web_Max;
+
+			lineAvailabilityTrendControlsData[0].key = projectLabels.Web_Percentage;
+			lineAvailabilityTrendControlsData[1].key = projectLabels.Web_Duration;
+
+
+			selectLine = projectLabels["Web_SelectLine"];
+
+			document.title = projectLabels["Web_LineAvailabilityReportTitle"] ;
+			document.getElementById("pageTitleId").innerHTML = projectLabels["Web_LineAvailabilityReportTitle"] ;
+
+			document.getElementById("labelIntervalId").innerHTML = "#" + projectLabels["Web_Intervals"];
+		}
+
+		// Utilities
+
+		function hex2rgb(hex, opacity) {
+		        var h=hex.replace('#', '');
+		        h =  h.match(new RegExp('(.{'+h.length/3+'})', 'g'));
+
+		        for(var i=0; i<h.length; i++)
+		            h[i] = parseInt(h[i].length==1? h[i]+h[i]:h[i], 16);
+
+		        if (typeof opacity != 'undefined')  h.push(opacity);
+
+		        return 'rgba('+h.join(',')+')';
+		}
+
+
+		function fadeColor (hex) {
+
+		       var h=hex.replace('#', '');
+		        h =  h.match(new RegExp('(.{'+h.length/3+'})', 'g'));
+
+		        for(var i=0; i<h.length; i++)
+		            h[i] = parseInt(h[i].length==1? h[i]+h[i]:h[i], 16);
+			var r = h[0];
+			var g = h[1];
+			var b = h[2];
+  			if(r > 0 && b == 0){
+    				r--;
+    				g++;
+  			}
+			  if(g > 0 && r == 0){
+    				g--;
+    				b++;
+  			}
+  			if(b > 0 && g == 0){
+    				r++;
+    				b--;
+  			}
+			return ("rgb("+r+","+g+","+b+")");
+		}
+
+
+		function ColorLuminance(hex, lum) {
+
+			// validate hex string
+			hex = String(hex).replace(/[^0-9a-f]/gi, '');
+			if (hex.length < 6) {
+				hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+			}
+			lum = lum || 0;
+
+			// convert to decimal and change luminosity
+			var rgb = "#", c, i;
+			for (i = 0; i < 3; i++) {
+				c = parseInt(hex.substr(i*2,2), 16);
+				c = Math.round(Math.min(Math.max(0, c + (c * lum)), 255)).toString(16);
+				rgb += ("00"+c).substr(c.length);
+			}
+
+			return rgb;
+		}
+
+		function FilterChange(object, event) {
+			var keycode;
+
+			if (window.event) keycode = window.event.keyCode;
+			else if (e) keycode = e.which;
+			else return true;
+			if (keycode == 13) {
+				refreshCharts();
+				return false;
+			} else return true;
+		}
+
+		// END UTILITIES
+
+		// CHARTS UTILITIES
+		function clearChart(id) {
+			var svg = null;
+			svg = d3.select(id);
+			if (svg != null)
+				svg.selectAll("*").remove();
+		}
+
+		function clearAllCharts() {
+			clearChart("#OrderAvailabilityTrend svg");
+			clearChart("#OrderMachineFailure svg");
+			clearChart("#MachineFailureReason svg");
+		}
+
+		function refreshOrderCharts () {
+			buildOrderAvailabilityTrendChart("#OrderAvailabilityTrend svg", GetOrderPerformanceXac);
+		}
+
+		function refreshMachineCharts () {
+
+		}
+
+		function refreshTables () {
+
+			refreshMachineTable();
+			refreshMachineFailureListTable();
+		}
+
+		function refreshCharts() {
+			clearAllCharts();
+		//	document.getElementById("lineTitleId").innerHTML = selectLine;
+			// refresh support variables
+			selectedMachine = "";
+			selectedMachineDescription = "";
+			beginAvailabilityUtc = "";
+			endAvailabilityUtc = "";
+			beginAvailabilityLocal = "";
+			endAvailabilityLocal = "";
+			beginExtendedAvailabilityUtc = "";
+			endExtendedAvailabilityUtc = "";
+			beginExtendedAvailabilityLocal = "";
+			endExtendedAvailabilityLocal = "";
+
+					refreshOrderCharts ();
+				//	refreshMachineCharts ();
+
+
+
+		}
+
+		function resetAvailabilityUtc(oSelected) {
+			beginAvailabilityUtc = "";
+			endAvailabilityUtc = "";
+			beginAvailabilityLocal = "";
+			endAvailabilityLocal = "";
+		}
+		// END CHARTS UTILITIES
+
+
+
+		// BEGIN TABLES
+		function refreshMachineTable() {
+			buildMachineParams();
+			machineDataTable.setQueryParams(machineParams);
+			machineTable.ajax.reload();
+		}
+
+
+		function buildMachineParams() {
+
+			var curMachine = "";
+			if (pulsFilters != null)
+				if (pulsFilters.getSelectedLine() != null)
+					curMachine = pulsFilters.getSelectedLine().id;
+
+			machineParams = {
+				"Param.1": curMachine,
+				"Param.2": beginAvailabilityUtc,
+				"Param.3": endAvailabilityUtc,
+				"Param.4": userLanguage,
+				"Param.5": 10000
+			}; // row count get all
+		}
+
+
+		function preMachineRowSelect() {
+			setTimeout(function() {
+				rowMachineSelect()
+			}, 100);
+		}
+
+		function rowMachineSelect() {
+			if (machineTable != null) {
+				var rows = machineTable.rows('.selected').data();
+				if (rows.length == 1) {
+					selectedMachine = rows[0]["Machine"];
+					selectedMachineDescription = rows[0]["Description"];
+				}
+				else {
+					selectedMachine = "";
+					selectedMachineDescription = "";
+				}
+				failureListReason = "";
+				failureListStatus = "";
+				failureListText = "";
+				fillSelectedBar();
+			}
+
+			buildMachineFailureDistributionChart("#MachineFailureDistribution svg");
+			buildMachineFailureStatusChart("#MachineFailureStatus svg", MachineFailureStatusXac);
+			buildMachineFailureReasonChart("#MachineFailureReason svg", MachineFailureReasonXac);
+			buildMachineFailureTextChart("#MachineFailureText svg", MachineFailureTextXac);
+			refreshMachineFailureListTable();
+		}
+
+		function resetMachineTableSelection() {
+			var dataRows = machineTable.rows().data();
+			var nodes = $('#machineTableId').dataTable().fnGetNodes();
+
+			failureListReason = "";
+			failureListStatus = "";
+			failureListText = "";
+
+			for (i = 0; i < dataRows.length; i++) {
+				if (selectedMachine == dataRows[i]["Machine"]) {
+					try { // Works in Chrome
+						nodes[i].classList.add('selected');
+					} catch (e) { // Works in IE
+						nodes[i].className += ' selected';
+					}
+				} else {
+
+					try { // Works in Chrome
+						nodes[i].classList.remove('selected');
+					} catch (e) { // Works in IE
+						nodes[i].className = nodes[i].className.replace("selected", "");
+					}
+				}
+			}
+		}
+
+
+		function preFaultsRowSelect () {
+		}
+
+		function refreshMachineFailureListTable() {
+			buildFailureListParams();
+			failureListDataTable.setQueryParams(failureListParams);
+			failureListTable.ajax.reload();
+		}
+
+		function buildFailureListParams() {
+		//	var text = (failureListText == projectLabels.Web_NoText) ? "Empty" : failureListText;
+			failureListParams = {
+				"Param.1": selectedMachine,
+				"Param.2": beginAvailabilityUtc,
+				"Param.3": endAvailabilityUtc,
+				"Param.4": userLanguage,
+				"Param.5": failureListStatus,
+				"Param.6": failureListReason,
+				"Param.7": (failureListText == projectLabels.Web_NoText) ? "Empty" : failureListText,
+				"Param.8": $("#intervalBrowser").select2('data').id
+			};
+		}
+
+		function buildLineInfoParams () {
+			if (pulsFilters.getSelectedLine() != null)
+				lineInfoParams={"Param.1": pulsFilters.getSelectedLine().id,"Param.2":userLanguage}
+		}
+
+		function setBottleNeckMachine () {
+
+			buildLineInfoParams();
+			bottleNeckMachine = "";
+
+			var data = callDataQuery(GetLineInfoXac, lineInfoParams);
+			if (data.length > 0 ) {
+				bottleNeckMachine = data[0].BottleNeckMachine;
+				if (selectedMachine === "") {
+					selectedMachine = bottleNeckMachine;
+					selectedMachineDescription = data[0].BottleNeckDescription;
+					buildMachineFailureDistributionChart("#MachineFailureDistribution svg");
+
+					buildMachineFailureStatusChart("#MachineFailureStatus svg", MachineFailureStatusXac);
+					buildMachineFailureReasonChart("#MachineFailureReason svg", MachineFailureReasonXac);
+					buildMachineFailureTextChart("#MachineFailureText svg", MachineFailureTextXac);
+					refreshMachineFailureListTable();
+					resetMachineTableSelection();
+				}
+			}
+		}
+
+		 function machineTableCreatedRow( row, data, index ) {
+			if ( data.Machine == bottleNeckMachine) {
+				  $(row).addClass('gr');
+		  }
+			if ( data.Machine == selectedMachine) {
+				  $(row).addClass('selected');
+		  }
+		}
+		// END TABLES
+
+		function inputFilterListChange() {
+			var keycode;
+			if (window.event) keycode = window.event.keyCode;
+			else if (e) keycode = e.which;
+			else return true;
+			if (keycode == 13) {
+				refreshCharts();
+				return false;
+			}
+			else return true;
+		}
+
+		// BEGIN CALENDARS
+		function addCalendar(id, label, dateFormat, width) {
+
+			// dateFormat = "enDateTime";
+			var params = {
+				callback : refreshCharts,
+				label : "",
+				showInPopup : true,				txtboxWidth:width + "px",
+				calendarWidth:350,
+				calendarFontSize: 16,
+				dateFormat:dateFormat,
+				userLanguage : userLanguage.toUpperCase()
+			}
+			var calendar = new miiCalendar(id, params);
+
+			calendar.setKeep(true);
+			calendar.setLocked(false);
+		//	calendar.setBeginMonday(false);
+			// calendar.setShowWeekNumber(true);
+			// calendar.setShowDOY(true);
+			return calendar;
+		}
+
+		// END CALENDARS
+
+		function Load() {
+
+			// printUserAgent();
+
+			var toDate = new Date( getLastNDays(-1));
+			var dateStr = "";
+			var tmpStr = "";
+
+			tmpStr = "0" + toDate.getDate();
+			tmpStr = tmpStr.substring(tmpStr.length - 2);
+			dateStr += tmpStr + "/";
+			tmpStr = "0" + (toDate.getMonth() + 1);
+			tmpStr = tmpStr.substring(tmpStr.length - 2);
+			dateStr += tmpStr + "/";
+			dateStr += toDate.getFullYear() + " 00:00";
+
+			var get = parseLowerCaseGetVars();
+
+
+			if (typeof(get.language) != "undefined")
+				userLanguage = get.language;
+
+
+			if (userLanguage == "") {
+				var userProperties = getCurrentUserProperties();
+				userLanguage = userProperties.OUT_Language;
+			}
+
+			generalLabels = getUserLabels("General", userLanguage);
+
+
+	//		setLanguageLabels();
+
+			setSelect2Language(userLanguage);
+
+			toCal = addCalendar('toCalendarId', generalLabels["Web_To"], 'itDateTime', '120');
+			// toCal.setCalendarDate(dateStr);
+			toCal.setDateObj(toDate);
+
+
+
+
+
+
+
+
+
+
+
+			$(document).ready(function() {
+
+		/*		$("#intervalBrowser").select2({
+					"data": intervalList,
+					"dropdownCssClass": 'no-search',
+					"allowClear": false
+				});
+
+				$('#intervalBrowser').select2('val', 'Week');
+
+				$("#intervalBrowser").change(function() {
+					refreshCharts();
+
+				}); */
+
+				refreshCharts();
+
+
+
+			});
+
+
+		}
+
+		// DATABASE TABLE FUNCTIONS
+		function refreshdbTable() {
+
+		}
+
+
+		function reset(name) {
+			var section = '';
+			if (name == 'btn_Reset') {
+				fromCal.reset();
+				toCal.reset();
+				buildDbHistoryChart();
+			}
+			if (name == 'btn_Reset_Table') {
+				tableFromCal.reset();
+				tableToCal.reset();
+				buildTableHistoryChart();
+			}
+			if (name == 'btn_Reset_Chart') {}
+		}
+	</script>
+
+
+</head>
+
+<body onload="Load()">
+
+	<h1 class="txtcenter padb5 padt5 " id="pageTitleId">OEE</h1>
+
+	<div class="centro">
+	<!--	<h2 class="txtcenter padb5 padt5 " id="lineTitleId">LINE</h2> -->
+		<!-- Calendar section -->
+		<div class="dispib">
+			<label id="labelIntervalId"># Orders</label>
+			<input id="NumberTextbox" class="dispic" onkeypress="return FilterChange(this, event)" type="text" size="5" maxlength="3" value="10" style="text-align:center"  />
+			<!-- <div id="intervalBrowser" class="margo10 dispib width150"></div> -->
+			<div id="toCalendarId" class="margo10 dispib labbottom"></div>
+		</div>
+	</div>
+	<div class="margv5 border90"></div>
+	<div id="OrderAvailabilityTrendContainer" style="margin:0 auto;text-align:center">
+		<div style="margin:0 auto;text-align:center;width:90%">
+			<div id="OrderAvailabilityTrend" class="sx" style="width:98%;background-color:#F8F8F8;border:1px solid #333">
+				<svg style="width:100%; height:280px"></svg>
+			</div>
+		</div>
+
+	<!--	<div class="col30 dx">
+			<div id="OrderPerformanceSummary" class="sx" style="background-color:#FFFFD6;border:1px solid #844100; width:100%">
+				<svg style="width:100%; height:280px"></svg>
+			</div>
+		</div>
+		<div class="dummy" style="border:1px solid transparent"></div>
+	</div>--> <!-- end OrderAvailabilityTrendContainer -->
+	<div class="dummy margv5" style="border:1px solid transparent"></div>
+
+	<div id="OrderMachineFailureContainer" style="margin:0 10px">
+		<div class="col50 sx">
+			<div id="OrderMachineFailure"  style="background-color:#F8F8F8;border:1px solid #333;width:98% ">
+				<svg style="width:100%; height:390px "></svg>
+			</div>
+		</div>
+
+		<div class="col50 dx">
+			<div id="MachineFailureReason" style="background-color:#F8F8F8;border:1px solid #333; width:100%">
+				<svg style="width:100%; height:390px"></svg>
+			</div>
+		</div>
+		<div class="dummy" style="border:1px solid transparent"></div>
+	</div> <!-- end LineMachineFailure -->
+
+	<div class="dummy margv5" style="border:1px solid transparent"></div>
+
+</body>
+</html>
